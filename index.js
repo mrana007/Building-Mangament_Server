@@ -27,11 +27,19 @@ async function run() {
     await client.connect();
 
     const apartmentCollection = client.db("buildingDb").collection("apartments");
+    const agreementCollection = client.db("buildingDb").collection("agreements");
 
     app.get('/apartments', async(req, res)=>{
         const result = await apartmentCollection.find().toArray();
         res.send(result);
-    })
+    });
+
+    // agreements collection
+    app.post('/agreements', async(req, res)=>{
+        const agreementData = req.body;
+        const result = await agreementCollection.insertOne(agreementData);
+        res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
