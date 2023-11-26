@@ -35,6 +35,12 @@ async function run() {
     });
 
     // agreements collection
+    // get agreements data
+    app.get('/agreements', async(req, res)=>{
+        const result = await agreementCollection.find().toArray();
+        res.send(result);
+    });
+    // post agreements data
     app.post('/agreements', async(req, res)=>{
         const agreementData = req.body;
         const result = await agreementCollection.insertOne(agreementData);
