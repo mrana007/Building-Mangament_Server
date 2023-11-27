@@ -28,13 +28,22 @@ async function run() {
 
     const apartmentCollection = client.db("buildingDb").collection("apartments");
     const agreementCollection = client.db("buildingDb").collection("agreements");
+    const userCollection = client.db("buildingDb").collection("users");
 
+    // users related api
+    app.post('/users', async(req, res)=>{
+        const user = req.body;
+        const result = await userCollection.insertOne(user);
+        res.send(result);
+    });
+
+    // apartments related api
     app.get('/apartments', async(req, res)=>{
         const result = await apartmentCollection.find().toArray();
         res.send(result);
     });
 
-    // agreements collection
+    // agreements related api
     // get agreements data
     app.get('/agreements', async(req, res)=>{
         const result = await agreementCollection.find().toArray();
