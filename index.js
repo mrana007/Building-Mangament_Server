@@ -29,6 +29,7 @@ async function run() {
     const agreementCollection = client.db("buildingDb").collection("agreements");
     const userCollection = client.db("buildingDb").collection("users");
     const announcementCollection = client.db("buildingDb").collection("announcements");
+    const couponCollection = client.db("buildingDb").collection("coupons");
 
     // users related api
     // user update role user to member
@@ -117,12 +118,28 @@ async function run() {
     });
     
     // announcement related api
+    app.get("/announcements", async (req, res) => {
+        const result = await announcementCollection.find().toArray();
+        res.send(result);
+      });
+
     app.post("/announcements", async (req, res) => {
         const announcementData = req.body;
         const result = await announcementCollection.insertOne(announcementData);
-        res.send(result);
-        
+        res.send(result); 
       });
+    //   coupons related api
+    app.get("/coupons", async (req, res) => {
+        const result = await couponCollection.find().toArray();
+        res.send(result);
+      });
+
+    app.post("/coupons", async (req, res) => {
+        const couponData = req.body;
+        const result = await couponCollection.insertOne(couponData);
+        res.send(result);
+      });
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
