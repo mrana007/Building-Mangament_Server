@@ -1,7 +1,8 @@
 const express = require("express");
+require("dotenv").config();
 const app = express();
 const cors = require("cors");
-require("dotenv").config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -23,13 +24,15 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    await client.connect(); //TODO: need to delete or comment before deploy
 
     const apartmentCollection = client.db("buildingDb").collection("apartments");
     const agreementCollection = client.db("buildingDb").collection("agreements");
     const userCollection = client.db("buildingDb").collection("users");
     const announcementCollection = client.db("buildingDb").collection("announcements");
     const couponCollection = client.db("buildingDb").collection("coupons");
+    const agreementInformation = client.db("buildingDb").collection("agreementInfo");
+    const paymentCollection = client.db("buildingDb").collection("paymentInfo");
 
     // users related api
     // user update role user to member
@@ -86,6 +89,19 @@ async function run() {
       res.send(result);
     });
 
+    // update member to user api
+    app.patch("/member/:id", async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const updatedDoc = {
+          $set: {
+            role: "user",
+          },
+        };
+        const result = await userCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      });
+
     // apartments related api
     app.get("/apartments", async (req, res) => {
       const result = await apartmentCollection.find().toArray();
@@ -100,6 +116,19 @@ async function run() {
         const updateDoc = {
             $set: {
                 status: 'checked'
+            }
+        }
+        const result = await agreementCollection.updateOne(filter, updateDoc);
+        res.send(result);
+    });
+
+    // reject api agreements
+    app.patch('/rejectAgreement/status/:id', async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) }
+        const updateDoc = {
+            $set: {
+                status: 'rejected'
             }
         }
         const result = await agreementCollection.updateOne(filter, updateDoc);
@@ -139,6 +168,49 @@ async function run() {
         const result = await couponCollection.insertOne(couponData);
         res.send(result);
       });
+
+    // agreement info api
+    app.get('/agreementInfo/:email', async (req, res) => {
+        const email = req.params.email;
+        const filter = { email: email }
+        const cursor = await agreementInformation.findOne(filter);
+        res.send(cursor);
+    });
+
+    app.post("/agreementInfo", async (req, res) => {
+        const agreementData = req.body;
+        const result = await agreementInformation.insertOne(agreementData);
+        res.send(result);
+    });
+
+    // payment api
+    app.post("/create-payment-intent", async (req, res) => {
+        const { rent } = req.body;
+        const amount = parseInt(rent * 100);
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: amount,
+            currency: "usd",
+            payment_method_types: ['card']
+        })
+        res.send({
+            clientSecret: paymentIntent.client_secret,
+        });
+    });
+
+    app.post('/payments', async (req, res) => {
+        const payment = req.body;
+
+        const paymentPost = await paymentCollection.insertOne(payment);
+        res.send({ paymentPost});
+    })
+
+    // get payment history
+    app.get('/payments/:email', async (req, res) => {
+        const email = req.params.email;
+        const query = { email: email }
+        const result = await paymentCollection.find(query).toArray();
+        res.send(result);
+    });
 
 
     // Send a ping to confirm a successful connection
